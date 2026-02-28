@@ -218,6 +218,43 @@ Create your own by writing markdown files to `/spiffs/skills/`.
 - **Cron scheduler** with persistent jobs
 - **Heartbeat** for autonomous task execution
 
+## Roadmap
+
+### Phase 1 — Quick Wins
+
+| Feature | Description | Priority | Status |
+|---------|-------------|----------|--------|
+| HTTP fetch tool | Fetch URL content, strip HTML, return text to LLM | High | Planned |
+| System info tool | Return heap, uptime, WiFi RSSI, chip temp for self-monitoring | High | Planned |
+| Send message tool | Let the agent proactively send messages to Telegram from cron/heartbeat | High | Planned |
+| Telegram allowlist | Restrict bot access to configured chat_ids only | High | Planned |
+
+### Phase 2 — Smarter Agent
+
+| Feature | Description | Priority | Status |
+|---------|-------------|----------|--------|
+| Session compaction | Summarize older messages when history exceeds limit, prevent context loss | High | Planned |
+| Auto memory flush | Extract key facts into MEMORY.md before compaction | Medium | Planned |
+| API key rotation | Store multiple API keys, auto-retry on 429 rate limit | Medium | Planned |
+| Model failover | Primary model → fallback chain on errors | Medium | Planned |
+
+### Phase 3 — More Channels & Integrations
+
+| Feature | Description | Priority | Status |
+|---------|-------------|----------|--------|
+| Discord bot | Second messaging channel via Discord Bot API (HTTP polling) | Medium | Planned |
+| Webhook endpoint | `POST /hooks/wake` to trigger agent from external systems (Home Assistant, IFTTT) | Medium | Planned |
+| Web dashboard | Serve simple HTML control panel from SPIFFS (config, status, chat) | Low | Planned |
+
+### Phase 4 — Polish
+
+| Feature | Description | Priority | Status |
+|---------|-------------|----------|--------|
+| Weather tool | Direct OpenWeatherMap API calls (free tier, no web search overhead) | Low | Planned |
+| Skill install from URL | `skill_install <url>` to download skill files from the web | Low | Planned |
+| Gemini provider | Native Google Gemini API support (different auth format) | Low | Planned |
+| Skill enable/disable | Toggle skills on/off without deleting them | Low | Planned |
+
 ## For Developers
 
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — system design, module map, memory budget
