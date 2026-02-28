@@ -1,0 +1,5 @@
+# FemtoClaw - Common Default Configuration
+# Target-specific settings are in sdkconfig.defaults.esp32s3
+
+# Network hostname
+CONFIG_LWIP_LOCAL_HOSTNAME="femtoclaw"
