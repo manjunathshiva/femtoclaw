@@ -15,14 +15,14 @@ FemtoClaw runs a full AI agent on bare-metal ESP32 hardware. It connects to WiFi
 
 ## Why FemtoClaw?
 
-| | FemtoClaw | MimiClaw | OpenClaw | Nanobot |
+| | FemtoClaw | MimiClaw | Nanobot | OpenClaw |
 |---|---|---|---|---|
 | **Hardware** | ESP32 / ESP32-S3 | ESP32-S3 only | Linux SBC | Linux server |
 | **Cost** | **$4** | $10 | $35+ | $100+ |
 | **RAM** | ~120KB / ~8MB | ~8MB | 512MB+ | GB+ |
-| **Language** | C | C | Python | Python |
+| **Language** | C | C | Python | Node.js |
 | **PSRAM required** | No | Yes | N/A | N/A |
-| **Zero-config search** | DDG fallback | API key only | API key | API key |
+| **Zero-config search** | DDG fallback | API key only | API key | Default |
 
 ## Key Features
 
