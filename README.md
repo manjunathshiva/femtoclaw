@@ -29,7 +29,7 @@ FemtoClaw runs a full AI agent on bare-metal ESP32 hardware. It connects to WiFi
 - **Dual-target** — runs on both $4 ESP-WROOM-32 (no PSRAM) and $10 ESP32-S3 (8MB PSRAM)
 - **Zero-config web search** — DuckDuckGo fallback when no Brave API key is set
 - **SNTP time sync** — automatic time from NTP servers, configurable timezone
-- **Agent loop** — ReAct pattern with tool calling (web search, file ops, cron, time)
+- **Agent loop** — ReAct pattern with tool calling (web search, file ops, cron, messaging, time)
 - **Persistent memory** — SOUL.md personality, MEMORY.md long-term memory, daily notes
 - **Telegram + WebSocket** — message it from anywhere
 - **Cron scheduler** — the AI schedules its own recurring tasks
@@ -202,6 +202,7 @@ FemtoClaw supports tool calling for both Anthropic and OpenAI (ReAct pattern):
 | `cron_add` | Schedule a recurring or one-shot task |
 | `cron_list` | List scheduled cron jobs |
 | `cron_remove` | Remove a cron job by ID |
+| `send_message` | Send a message immediately to Telegram or WebSocket |
 
 ## Skills
 
@@ -229,7 +230,7 @@ Create your own by writing markdown files to `/spiffs/skills/`.
 | Feature | Target | Description | Priority | Status |
 |---------|--------|-------------|----------|--------|
 | System info tool | Both | Return heap, uptime, WiFi RSSI, chip temp for self-monitoring | High | Planned |
-| Send message tool | Both | Let the agent proactively send messages to Telegram from cron/heartbeat | High | Planned |
+| Send message tool | Both | Let the agent proactively send messages to Telegram from cron/heartbeat | High | **Done** |
 | Telegram allowlist | Both | Restrict bot access to configured chat_ids only | High | Planned |
 | HTTP fetch tool | S3 only | Fetch URL content, strip HTML, return text to LLM (needs PSRAM for usable buffer sizes) | High | Planned |
 

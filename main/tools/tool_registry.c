@@ -3,6 +3,7 @@
 #include "tools/tool_get_time.h"
 #include "tools/tool_files.h"
 #include "tools/tool_cron.h"
+#include "tools/tool_send_message.h"
 
 #include <string.h>
 #include "esp_log.h"
@@ -174,6 +175,22 @@ esp_err_t tool_registry_init(void)
         .execute = tool_cron_remove_execute,
     };
     register_tool(&cr);
+
+    /* Register send_message */
+    femto_tool_t sm = {
+        .name = "send_message",
+        .description = "Send a message immediately to a user via Telegram or WebSocket. Use this to proactively send messages, greetings, notifications, or replies to a specific chat. Do NOT use cron_add for immediate messages — use this tool instead.",
+        .input_schema_json =
+            "{\"type\":\"object\","
+            "\"properties\":{"
+            "\"chat_id\":{\"type\":\"string\",\"description\":\"The recipient chat ID (Telegram chat_id or WebSocket client ID)\"},"
+            "\"message\":{\"type\":\"string\",\"description\":\"The message text to send\"},"
+            "\"channel\":{\"type\":\"string\",\"description\":\"Delivery channel: 'telegram' or 'websocket'. Defaults to 'telegram' if omitted\"}"
+            "},"
+            "\"required\":[\"chat_id\",\"message\"]}",
+        .execute = tool_send_message_execute,
+    };
+    register_tool(&sm);
 
     build_tools_json();
 
