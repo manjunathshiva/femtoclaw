@@ -1,6 +1,6 @@
 # FemtoClaw Architecture
 
-> ESP32-S3 AI Agent firmware — C/FreeRTOS implementation running on bare metal (no Linux).
+> ESP32 / ESP32-S3 AI Agent firmware — C/FreeRTOS implementation running on bare metal (no Linux).
 
 ---
 
@@ -13,7 +13,7 @@ Telegram App (User)
     │
     ▼
 ┌──────────────────────────────────────────────────┐
-│               ESP32-S3 (FemtoClaw)                │
+│          ESP32 / ESP32-S3 (FemtoClaw)            │
 │                                                  │
 │   ┌─────────────┐       ┌──────────────────┐     │
 │   │  Telegram    │──────▶│   Inbound Queue  │     │
@@ -25,7 +25,7 @@ Telegram App (User)
 │   │  WebSocket   │─▶│     (Core 1)           │    │
 │   │  Server      │  │                        │    │
 │   │  (:18789)    │  │  Context ──▶ LLM Proxy │    │
-│   └─────────────┘  │  Builder      (HTTPS)   │    │
+│   └─────────────┘  │  Builder   (multi-prov) │    │
 │                     │       ▲          │      │    │
 │   ┌─────────────┐  │       │     tool_use?   │    │
 │   │  Serial CLI  │  │       │          ▼      │    │
@@ -47,19 +47,23 @@ Telegram App (User)
 │                     sendMessage  send              │
 │                                                   │
 │   ┌──────────────────────────────────────────┐    │
-│   │  SPIFFS (12 MB)                          │    │
+│   │  SPIFFS (flash-dependent)                │    │
 │   │  /spiffs/config/  SOUL.md, USER.md       │    │
 │   │  /spiffs/memory/  MEMORY.md, YYYY-MM-DD  │    │
 │   │  /spiffs/sessions/ tg_<chat_id>.jsonl    │    │
 │   └──────────────────────────────────────────┘    │
 └───────────────────────────────────────────────────┘
          │
-         │  Anthropic Messages API (HTTPS)
-         │  + Brave Search API (HTTPS)
+         │  LLM API (HTTPS or HTTP)
+         │  + Web Search (HTTPS)
          ▼
-   ┌───────────┐   ┌──────────────┐
-   │ Claude API │   │ Brave Search │
-   └───────────┘   └──────────────┘
+   ┌───────────┐ ┌──────────┐ ┌────────┐ ┌────────┐
+   │ Claude API │ │ OpenAI   │ │ Ollama │ │LMStudio│
+   └───────────┘ └──────────┘ └────────┘ └────────┘
+   ┌───────────────┐  ┌──────────────────┐
+   │ Brave Search  │  │ DuckDuckGo (DDG) │
+   │ (API key)     │  │ (zero-config)    │
+   └───────────────┘  └──────────────────┘
 ```
 
 ---
@@ -75,10 +79,10 @@ Telegram App (User)
    b. Build system prompt (SOUL.md + USER.md + MEMORY.md + recent notes + tool guidance)
    c. Build cJSON messages array (history + current message)
    d. ReAct loop (max 10 iterations):
-      i.   Call Claude API via HTTPS (non-streaming, with tools array)
+      i.   Call LLM via LLM Proxy (Anthropic, OpenAI, Ollama, or LM Studio)
       ii.  Parse JSON response → text blocks + tool_use blocks
       iii. If stop_reason == "tool_use":
-           - Execute each tool (e.g. web_search → Brave Search API)
+           - Execute each tool (e.g. web_search → Brave or DuckDuckGo)
            - Append assistant content + tool_result to messages
            - Continue loop
       iv.  If stop_reason == "end_turn": break with final text
@@ -114,7 +118,7 @@ main/
 │
 ├── llm/
 │   ├── llm_proxy.h         llm_chat() + llm_chat_tools() API, tool_use types
-│   └── llm_proxy.c         Anthropic Messages API (non-streaming), tool_use parsing
+│   └── llm_proxy.c         Multi-provider LLM (Anthropic, OpenAI, Ollama, LM Studio)
 │
 ├── agent/
 │   ├── agent_loop.h        Agent task init/start
@@ -126,7 +130,7 @@ main/
 │   ├── tool_registry.h     Tool definition struct, register/dispatch API
 │   ├── tool_registry.c     Tool registration, JSON schema builder, dispatch by name
 │   ├── tool_web_search.h   Web search tool API
-│   └── tool_web_search.c   Brave Search API via HTTPS (direct + proxy)
+│   └── tool_web_search.c   Brave Search API or DuckDuckGo fallback (direct + proxy)
 │
 ├── memory/
 │   ├── memory_store.h      Long-term + daily memory API
@@ -158,7 +162,7 @@ main/
 | Task               | Core | Priority | Stack  | Description                          |
 |--------------------|------|----------|--------|--------------------------------------|
 | `tg_poll`          | 0    | 5        | 12 KB  | Telegram long polling (30s timeout)  |
-| `agent_loop`       | 1    | 6        | 12 KB  | Message processing + Claude API call |
+| `agent_loop`       | 1    | 6        | 12 KB  | Message processing + LLM API call    |
 | `outbound`         | 0    | 5        | 8 KB   | Route responses to Telegram / WS     |
 | `serial_cli`       | 0    | 3        | 4 KB   | USB serial console REPL              |
 | httpd (internal)   | 0    | 5        | —      | WebSocket server (esp_http_server)   |
@@ -170,11 +174,13 @@ main/
 
 ## Memory Budget
 
+### ESP32-S3 (8 MB PSRAM)
+
 | Purpose                            | Location       | Size     |
 |------------------------------------|----------------|----------|
 | FreeRTOS task stacks               | Internal SRAM  | ~40 KB   |
 | WiFi buffers                       | Internal SRAM  | ~30 KB   |
-| TLS connections x2 (Telegram + Claude) | PSRAM      | ~120 KB  |
+| TLS connections x2 (Telegram + LLM)| PSRAM          | ~120 KB  |
 | JSON parse buffers                 | PSRAM          | ~32 KB   |
 | Session history cache              | PSRAM          | ~32 KB   |
 | System prompt buffer               | PSRAM          | ~16 KB   |
@@ -182,6 +188,19 @@ main/
 | Remaining available                | PSRAM          | ~7.7 MB  |
 
 Large buffers (32 KB+) are allocated from PSRAM via `heap_caps_calloc(1, size, MALLOC_CAP_SPIRAM)`.
+
+### ESP-WROOM-32 (no PSRAM)
+
+| Purpose                            | Location       | Size     |
+|------------------------------------|----------------|----------|
+| FreeRTOS task stacks               | Internal SRAM  | ~40 KB   |
+| WiFi buffers                       | Internal SRAM  | ~30 KB   |
+| TLS connections x2 (Telegram + LLM)| Internal SRAM  | ~120 KB  |
+| System prompt buffer               | Internal SRAM  | ~4 KB    |
+| LLM response stream buffer         | Internal SRAM  | ~8 KB    |
+| Remaining available                | Internal SRAM  | Very tight |
+
+On ESP-WROOM-32, all buffers use standard `calloc()`. Buffer sizes are reduced via `#if CONFIG_SPIRAM` guards in `femto_config.h` (e.g. stream buffer 8 KB vs 32 KB, context buffer 4 KB vs 16 KB). There is no headroom for a 3rd TLS connection.
 
 ---
 
@@ -225,20 +244,27 @@ Session files are JSONL (one JSON object per line):
 
 ## Configuration
 
-All configuration is done exclusively through `femto_secrets.h` at build time. There is no runtime configuration — changing any setting requires `idf.py fullclean && idf.py build`.
+Configuration uses a two-layer priority system: **NVS (runtime CLI) > build-time secrets > defaults**.
 
-| Define                       | Description                             |
-|------------------------------|-----------------------------------------|
-| `FEMTO_SECRET_WIFI_SSID`     | WiFi SSID                               |
-| `FEMTO_SECRET_WIFI_PASS`     | WiFi password                           |
-| `FEMTO_SECRET_TG_TOKEN`      | Telegram Bot API token                  |
-| `FEMTO_SECRET_API_KEY`       | Anthropic API key                       |
-| `FEMTO_SECRET_MODEL`         | Model ID (default: claude-opus-4-6)     |
-| `FEMTO_SECRET_PROXY_HOST`    | HTTP proxy hostname/IP (optional)       |
-| `FEMTO_SECRET_PROXY_PORT`    | HTTP proxy port (optional)              |
-| `FEMTO_SECRET_SEARCH_KEY`    | Brave Search API key (optional)         |
+### Build-time secrets (`femto_secrets.h`)
 
-NVS is still initialized (required by ESP-IDF WiFi internals) but is not used for application configuration.
+| Define                          | Description                                          |
+|---------------------------------|------------------------------------------------------|
+| `FEMTO_SECRET_WIFI_SSID`        | WiFi SSID                                            |
+| `FEMTO_SECRET_WIFI_PASS`        | WiFi password                                        |
+| `FEMTO_SECRET_TG_TOKEN`         | Telegram Bot API token                               |
+| `FEMTO_SECRET_API_KEY`          | LLM API key (Anthropic, OpenAI, or local)            |
+| `FEMTO_SECRET_MODEL`            | Model ID (default: `claude-opus-4-5`)                |
+| `FEMTO_SECRET_MODEL_PROVIDER`   | `"anthropic"` or `"openai"` (Ollama/LM Studio use `"openai"`) |
+| `FEMTO_SECRET_API_BASE_URL`     | Custom endpoint URL (e.g. `http://192.168.1.100:1234` for LM Studio, `http://192.168.1.100:11434` for Ollama) |
+| `FEMTO_SECRET_PROXY_HOST`       | HTTP proxy hostname/IP (optional)                    |
+| `FEMTO_SECRET_PROXY_PORT`       | HTTP proxy port (optional)                           |
+| `FEMTO_SECRET_SEARCH_KEY`       | Brave Search API key (optional, DuckDuckGo used if empty) |
+| `FEMTO_SECRET_TIMEZONE`         | POSIX TZ string (optional, e.g. `"IST-5:30"`)       |
+
+### NVS runtime overrides (via Serial CLI)
+
+All build-time secrets can be overridden at runtime via CLI commands. NVS values take highest priority and persist across reboots.
 
 ---
 
@@ -278,54 +304,93 @@ Client `chat_id` is auto-assigned on connection (`ws_<fd>`) but can be overridde
 
 ---
 
-## Claude API Integration
+## LLM Provider Integration
 
-Endpoint: `POST https://api.anthropic.com/v1/messages`
+FemtoClaw supports multiple LLM backends through `llm_proxy.c`. The provider is selected via `s_provider` (`"anthropic"` or `"openai"`), and the endpoint URL is determined by `s_api_base_url`.
 
-Request format (Anthropic-native, non-streaming, with tools):
+### URL Routing
+
+| Provider | Custom base URL set? | Endpoint used |
+|----------|---------------------|---------------|
+| `anthropic` | No | `https://api.anthropic.com/v1/messages` |
+| `anthropic` | Yes | `<base_url>/v1/messages` |
+| `openai` | No | `https://api.openai.com/v1/chat/completions` |
+| `openai` | Yes | `<base_url>/v1/chat/completions` |
+
+**Ollama** and **LM Studio** use provider `"openai"` with a custom base URL (e.g. `http://192.168.1.100:11434` or `http://192.168.1.100:1234`). The proxy auto-appends the `/v1/chat/completions` path.
+
+### HTTP Dispatch
+
+Two code paths handle the HTTP request:
+
+- **Direct path** (`llm_http_direct()`): Uses `esp_http_client` directly. Supports both HTTP and HTTPS. Default for local endpoints (Ollama, LM Studio) and cloud APIs without a proxy.
+- **Proxy path** (`llm_http_via_proxy()`): Manual HTTP over CONNECT tunnel via `http_proxy.c`. Only used when a proxy is configured AND the endpoint is HTTPS.
+
+### Authentication Headers
+
+| Provider | Headers |
+|----------|---------|
+| `anthropic` | `x-api-key: <key>`, `anthropic-version: 2023-06-01` |
+| `openai` | `Authorization: Bearer <key>` |
+
+### Request Format — Anthropic
+
 ```json
 {
-  "model": "claude-opus-4-6",
+  "model": "claude-opus-4-5",
   "max_tokens": 4096,
   "system": "<system prompt>",
-  "tools": [
-    {
-      "name": "web_search",
-      "description": "Search the web for current information.",
-      "input_schema": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}
-    }
-  ],
-  "messages": [
-    {"role": "user", "content": "Hello"},
-    {"role": "assistant", "content": "Hi!"},
-    {"role": "user", "content": "What's the weather today?"}
-  ]
+  "tools": [{"name": "web_search", "description": "...", "input_schema": {...}}],
+  "messages": [{"role": "user", "content": "Hello"}]
 }
 ```
 
-Key difference from OpenAI: `system` is a top-level field, not inside the `messages` array.
+Key difference: `system` is a top-level field, not inside the `messages` array.
 
-Non-streaming JSON response:
+### Request Format — OpenAI (also Ollama / LM Studio)
+
 ```json
 {
-  "id": "msg_xxx",
-  "type": "message",
-  "role": "assistant",
-  "content": [
-    {"type": "text", "text": "Let me search for that."},
-    {"type": "tool_use", "id": "toolu_xxx", "name": "web_search", "input": {"query": "weather today"}}
+  "model": "gpt-4o",
+  "max_completion_tokens": 4096,
+  "messages": [
+    {"role": "system", "content": "<system prompt>"},
+    {"role": "user", "content": "Hello"}
   ],
-  "stop_reason": "tool_use"
+  "tools": [{"type": "function", "function": {"name": "web_search", "description": "...", "parameters": {...}}}]
 }
 ```
 
-When `stop_reason` is `"tool_use"`, the agent loop executes each tool and sends results back:
-```json
-{"role": "assistant", "content": [<text + tool_use blocks>]}
-{"role": "user", "content": [{"type": "tool_result", "tool_use_id": "toolu_xxx", "content": "..."}]}
-```
+The proxy converts Anthropic-style tool schemas to OpenAI function-calling format automatically.
 
-The loop repeats until `stop_reason` is `"end_turn"` (max 10 iterations).
+### Response Handling
+
+The agent loop checks `stop_reason` (Anthropic) or `finish_reason` (OpenAI) after each call:
+- `"tool_use"` / `"tool_calls"` → execute tools, append results, continue loop
+- `"end_turn"` / `"stop"` → break with final text
+
+The loop repeats until the LLM stops calling tools (max 10 iterations).
+
+---
+
+## Web Search
+
+The `web_search` tool supports two backends, selected automatically based on whether a Brave Search API key is configured.
+
+### Brave Search (API key required)
+
+- **Endpoint**: `GET https://api.search.brave.com/res/v1/web/search?q=<query>&count=5`
+- **Auth header**: `X-Subscription-Token: <key>`
+- **Response**: JSON — parses `web.results[].{title, url, description}`
+- Supports direct HTTPS and proxy path
+
+### DuckDuckGo (zero-config fallback)
+
+- **Endpoint**: `POST https://html.duckduckgo.com/html/`
+- **No API key required** — works out of the box
+- **Response**: HTML — custom parser extracts results from `class="result__a"` (title), `href` (URL), `class="result__snippet"` (description)
+- Smart header stripping: skips ~8KB of DDG boilerplate before `class="results"` marker, allowing 5 results to fit in the 8KB buffer on non-PSRAM devices
+- URL decoding: unwraps DDG redirect URLs (`//duckduckgo.com/l/?uddg=<encoded>&...`)
 
 ---
 
@@ -363,18 +428,41 @@ If WiFi credentials are missing or connection times out, the CLI remains availab
 
 ## Serial CLI Commands
 
-The CLI provides debug and maintenance commands only. All configuration is done via `femto_secrets.h`.
+The CLI provides runtime configuration (saved to NVS, overrides build-time defaults) and debug/maintenance commands.
+
+**Runtime config** (persisted to NVS):
+
+| Command                              | Description                                      |
+|--------------------------------------|--------------------------------------------------|
+| `set_wifi <SSID> <PASS>`             | Change WiFi credentials                          |
+| `set_tg_token <TOKEN>`               | Change Telegram bot token                        |
+| `set_api_key <KEY>`                  | Change LLM API key                               |
+| `set_model_provider <PROVIDER>`      | Switch provider (`anthropic` or `openai`)        |
+| `set_model <MODEL>`                  | Change model ID                                  |
+| `set_api_base_url <URL>`             | Set custom LLM endpoint (Ollama, LM Studio)      |
+| `clear_api_base_url`                 | Revert to default provider URL                   |
+| `set_proxy <HOST> <PORT>`            | Set HTTP CONNECT proxy                           |
+| `clear_proxy`                        | Remove proxy                                     |
+| `set_search_key <KEY>`               | Set Brave Search API key (DDG used if empty)     |
+| `config_show`                        | Show all current config                          |
+| `config_reset`                       | Clear NVS, revert to build-time defaults         |
+
+**Debug & maintenance:**
 
 | Command                        | Description                          |
 |--------------------------------|--------------------------------------|
 | `wifi_status`                  | Show connection status and IP        |
+| `wifi_scan`                    | Scan nearby access points            |
 | `memory_read`                  | Print MEMORY.md contents             |
 | `memory_write <CONTENT>`       | Overwrite MEMORY.md                  |
 | `session_list`                 | List all session files               |
 | `session_clear <CHAT_ID>`      | Delete a session file                |
 | `heap_info`                    | Show internal + PSRAM free bytes     |
+| `skill_list`                   | List installed skills                |
+| `heartbeat_trigger`            | Manually trigger heartbeat           |
+| `cron_start`                   | Start cron scheduler                 |
 | `restart`                      | Reboot the device                    |
-| `help`                         | List all available commands           |
+| `help`                         | List all available commands          |
 
 ---
 
@@ -388,10 +476,10 @@ The CLI provides debug and maintenance commands only. All configuration is done 
 | `session/manager.py`        | `memory/session_mgr.c`         | JSONL per chat, ring buffer  |
 | `channels/telegram.py`      | `telegram/telegram_bot.c`      | Raw HTTP, no python-telegram-bot |
 | `bus/events.py` + `queue.py`| `bus/message_bus.c`            | FreeRTOS queues vs asyncio   |
-| `providers/litellm_provider.py` | `llm/llm_proxy.c`         | Direct Anthropic API only    |
+| `providers/litellm_provider.py` | `llm/llm_proxy.c`         | Anthropic + OpenAI + Ollama/LM Studio |
 | `config/schema.py`          | `femto_config.h` + `femto_secrets.h` | Build-time secrets only  |
 | `cli/commands.py`           | `cli/serial_cli.c`             | esp_console REPL             |
-| `agent/tools/*`             | `tools/tool_registry.c` + `tool_web_search.c` | web_search via Brave API |
+| `agent/tools/*`             | `tools/tool_registry.c` + `tool_web_search.c` | Brave Search + DuckDuckGo fallback |
 | `agent/subagent.py`         | *(not yet implemented)*        | See TODO.md                  |
 | `agent/skills.py`           | *(not yet implemented)*        | See TODO.md                  |
 | `cron/service.py`           | *(not yet implemented)*        | See TODO.md                  |
