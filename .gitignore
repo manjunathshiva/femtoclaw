@@ -46,3 +46,6 @@ nanobot/
 .DS_Store
 Thumbs.db
 references/
+
+# Internal docs
+docs/TODO.md
