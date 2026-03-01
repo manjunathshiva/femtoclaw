@@ -222,38 +222,38 @@ Create your own by writing markdown files to `/spiffs/skills/`.
 
 ### Phase 1 — Quick Wins
 
-| Feature | Description | Priority | Status |
-|---------|-------------|----------|--------|
-| HTTP fetch tool | Fetch URL content, strip HTML, return text to LLM | High | Planned |
-| System info tool | Return heap, uptime, WiFi RSSI, chip temp for self-monitoring | High | Planned |
-| Send message tool | Let the agent proactively send messages to Telegram from cron/heartbeat | High | Planned |
-| Telegram allowlist | Restrict bot access to configured chat_ids only | High | Planned |
+| Feature | Target | Description | Priority | Status |
+|---------|--------|-------------|----------|--------|
+| System info tool | Both | Return heap, uptime, WiFi RSSI, chip temp for self-monitoring | High | Planned |
+| Send message tool | Both | Let the agent proactively send messages to Telegram from cron/heartbeat | High | Planned |
+| Telegram allowlist | Both | Restrict bot access to configured chat_ids only | High | Planned |
+| HTTP fetch tool | S3 only | Fetch URL content, strip HTML, return text to LLM (needs PSRAM for usable buffer sizes) | High | Planned |
 
 ### Phase 2 — Smarter Agent
 
-| Feature | Description | Priority | Status |
-|---------|-------------|----------|--------|
-| Session compaction | Summarize older messages when history exceeds limit, prevent context loss | High | Planned |
-| Auto memory flush | Extract key facts into MEMORY.md before compaction | Medium | Planned |
-| API key rotation | Store multiple API keys, auto-retry on 429 rate limit | Medium | Planned |
-| Model failover | Primary model → fallback chain on errors | Medium | Planned |
+| Feature | Target | Description | Priority | Status |
+|---------|--------|-------------|----------|--------|
+| API key rotation | Both | Store multiple API keys, auto-retry on 429 rate limit | Medium | Planned |
+| Model failover | Both | Primary model → fallback chain on errors | Medium | Planned |
+| Session compaction | S3 only | Summarize older messages when history exceeds limit (needs 16KB+ context buffer) | High | Planned |
+| Auto memory flush | S3 only | Extract key facts into MEMORY.md before compaction (needs PSRAM for dual-buffer LLM call) | Medium | Planned |
 
 ### Phase 3 — More Channels & Integrations
 
-| Feature | Description | Priority | Status |
-|---------|-------------|----------|--------|
-| Discord bot | Second messaging channel via Discord Bot API (HTTP polling) | Medium | Planned |
-| Webhook endpoint | `POST /hooks/wake` to trigger agent from external systems (Home Assistant, IFTTT) | Medium | Planned |
-| Web dashboard | Serve simple HTML control panel from SPIFFS (config, status, chat) | Low | Planned |
+| Feature | Target | Description | Priority | Status |
+|---------|--------|-------------|----------|--------|
+| Webhook endpoint | Both | `POST /hooks/wake` to trigger agent from external systems (Home Assistant, IFTTT) | Medium | Planned |
+| Discord bot | S3 only | Second messaging channel via Discord Bot API (needs 3rd TLS connection, ~60KB extra RAM) | Medium | Planned |
+| Web dashboard | S3 only | Serve simple HTML control panel from SPIFFS (needs PSRAM + 16MB flash for assets) | Low | Planned |
 
 ### Phase 4 — Polish
 
-| Feature | Description | Priority | Status |
-|---------|-------------|----------|--------|
-| Weather tool | Direct OpenWeatherMap API calls (free tier, no web search overhead) | Low | Planned |
-| Skill install from URL | `skill_install <url>` to download skill files from the web | Low | Planned |
-| Gemini provider | Native Google Gemini API support (different auth format) | Low | Planned |
-| Skill enable/disable | Toggle skills on/off without deleting them | Low | Planned |
+| Feature | Target | Description | Priority | Status |
+|---------|--------|-------------|----------|--------|
+| Weather tool | Both | Direct OpenWeatherMap API calls (free tier, no web search overhead) | Low | Planned |
+| Gemini provider | Both | Native Google Gemini API support (different auth format) | Low | Planned |
+| Skill enable/disable | Both | Toggle skills on/off without deleting them | Low | Planned |
+| Skill install from URL | S3 only | `skill_install <url>` to download skill files from the web (needs 16MB flash for SPIFFS space) | Low | Planned |
 
 ## For Developers
 
