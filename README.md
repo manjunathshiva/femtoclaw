@@ -40,6 +40,10 @@ FemtoClaw runs a full AI agent on bare-metal ESP32 hardware. It connects to WiFi
 
 ## Architecture
 
+<p align="center">
+  <img src="assets/femto-architecture.png" alt="FemtoClaw Architecture" width="700" />
+</p>
+
 See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the full system design, module map, and data flow.
 
 ## Quick Start
