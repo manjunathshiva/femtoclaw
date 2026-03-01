@@ -13,6 +13,16 @@
 
 FemtoClaw runs a full AI agent on bare-metal ESP32 hardware. It connects to WiFi, talks through Telegram, calls tools, remembers across reboots, and schedules its own tasks — all on a chip with ~120KB of free RAM.
 
+## See it in Action
+
+<p align="center">
+  <img src="assets/img3.png" alt="FemtoClaw scheduling classes and reminders" width="300" />
+  &nbsp;&nbsp;
+  <img src="assets/img1.png" alt="FemtoClaw listing capabilities" width="300" />
+  &nbsp;&nbsp;
+  <img src="assets/img2.png" alt="FemtoClaw memory and file management" width="300" />
+</p>
+
 ## Why FemtoClaw?
 
 | | FemtoClaw | MimiClaw | Nanobot | OpenClaw |
