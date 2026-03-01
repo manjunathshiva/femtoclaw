@@ -145,7 +145,9 @@ esp_err_t tool_get_time_execute(const char *input_json, char *output, size_t out
     if (now > 1700000000) { /* after ~Nov 2023 = clock is set */
         struct tm local;
         localtime_r(&now, &local);
-        strftime(output, output_size, "%Y-%m-%d %H:%M:%S %Z (%A)", &local);
+        char timebuf[64];
+        strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S %Z (%A)", &local);
+        snprintf(output, output_size, "%s | epoch=%lld", timebuf, (long long)now);
         ESP_LOGI(TAG, "Time (local clock): %s", output);
         return ESP_OK;
     }
@@ -159,6 +161,10 @@ esp_err_t tool_get_time_execute(const char *input_json, char *output, size_t out
     }
 
     if (err == ESP_OK) {
+        /* Append epoch — clock was just set by parse_and_set_time */
+        time_t fetched = time(NULL);
+        size_t len = strlen(output);
+        snprintf(output + len, output_size - len, " | epoch=%lld", (long long)fetched);
         ESP_LOGI(TAG, "Time: %s", output);
     } else {
         snprintf(output, output_size, "Error: failed to fetch time (%s)", esp_err_to_name(err));
