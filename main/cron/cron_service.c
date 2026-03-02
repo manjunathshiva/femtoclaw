@@ -146,6 +146,10 @@ static esp_err_t cron_load_jobs(void)
             cJSON *interval = cJSON_GetObjectItem(item, "interval_s");
             job->interval_s = (interval && cJSON_IsNumber(interval))
                               ? (uint32_t)interval->valuedouble : 0;
+            cJSON *at_epoch = cJSON_GetObjectItem(item, "at_epoch");
+            if (at_epoch && cJSON_IsNumber(at_epoch)) {
+                job->at_epoch = (int64_t)at_epoch->valuedouble;
+            }
         } else if (strcmp(kind_str, "at") == 0) {
             job->kind = CRON_KIND_AT;
             cJSON *at_epoch = cJSON_GetObjectItem(item, "at_epoch");
@@ -191,6 +195,9 @@ static esp_err_t cron_save_jobs(void)
 
         if (job->kind == CRON_KIND_EVERY) {
             cJSON_AddNumberToObject(item, "interval_s", job->interval_s);
+            if (job->at_epoch > 0) {
+                cJSON_AddNumberToObject(item, "at_epoch", (double)job->at_epoch);
+            }
         } else {
             cJSON_AddNumberToObject(item, "at_epoch", (double)job->at_epoch);
         }
@@ -286,8 +293,10 @@ static void cron_process_due_jobs(void)
                 job->next_run = 0;
             }
         } else {
-            /* Recurring: compute next run */
-            job->next_run = now + job->interval_s;
+            /* Recurring: advance from scheduled time to prevent drift */
+            do {
+                job->next_run += job->interval_s;
+            } while (job->next_run <= now);
         }
 
         changed = true;
@@ -315,7 +324,15 @@ static void compute_initial_next_run(cron_job_t *job)
     time_t now = time(NULL);
 
     if (job->kind == CRON_KIND_EVERY) {
-        job->next_run = now + job->interval_s;
+        if (job->at_epoch > 0) {
+            /* Anchor to start_at, advance until future */
+            job->next_run = job->at_epoch;
+            while (job->next_run <= now) {
+                job->next_run += job->interval_s;
+            }
+        } else {
+            job->next_run = now + job->interval_s;
+        }
     } else if (job->kind == CRON_KIND_AT) {
         if (job->at_epoch > now) {
             job->next_run = job->at_epoch;
@@ -347,7 +364,14 @@ esp_err_t cron_service_start(void)
         cron_job_t *job = &s_jobs[i];
         if (job->enabled && job->next_run <= 0) {
             if (job->kind == CRON_KIND_EVERY) {
-                job->next_run = now + job->interval_s;
+                if (job->at_epoch > 0) {
+                    job->next_run = job->at_epoch;
+                    while (job->next_run <= now) {
+                        job->next_run += job->interval_s;
+                    }
+                } else {
+                    job->next_run = now + job->interval_s;
+                }
             } else if (job->kind == CRON_KIND_AT && job->at_epoch > now) {
                 job->next_run = job->at_epoch;
             }

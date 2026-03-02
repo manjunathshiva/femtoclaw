@@ -144,11 +144,16 @@ idf.py fullclean && idf.py build
 ls /dev/cu.usb*          # macOS
 ls /dev/ttyACM*          # Linux
 
-# Flash and monitor
+# First-time flash (writes firmware + SPIFFS storage with default files)
 idf.py -p PORT flash monitor
+
+# Subsequent flashes (firmware only — preserves memory, cron jobs, sessions)
+idf.py -p PORT app-flash monitor
 ```
 
 > **ESP32-S3 users:** Plug into the **USB** port, not the **COM** port.
+>
+> **Preserving data:** Use `app-flash` instead of `flash` after initial setup. `flash` overwrites the SPIFFS partition, wiping MEMORY.md, cron.json, sessions, and daily notes. `app-flash` only updates the firmware binary.
 
 ### CLI Commands
 

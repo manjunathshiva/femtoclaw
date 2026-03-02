@@ -142,6 +142,7 @@ esp_err_t tool_registry_init(void)
             "\"name\":{\"type\":\"string\",\"description\":\"Short name for the job\"},"
             "\"schedule_type\":{\"type\":\"string\",\"description\":\"'every' for recurring interval or 'at' for one-shot at a unix timestamp\"},"
             "\"interval_s\":{\"type\":\"integer\",\"description\":\"Interval in seconds (required for 'every')\"},"
+            "\"start_at\":{\"type\":\"integer\",\"description\":\"Unix epoch to anchor the first run (optional, for 'every'). E.g. for 'daily at 6 AM', set start_at to the next 6 AM epoch and interval_s to 86400\"},"
             "\"at_epoch\":{\"type\":\"integer\",\"description\":\"Unix timestamp to fire at (required for 'at')\"},"
             "\"message\":{\"type\":\"string\",\"description\":\"Message to inject when the job fires, triggering an agent turn\"},"
             "\"channel\":{\"type\":\"string\",\"description\":\"Optional reply channel (e.g. 'telegram'). If omitted, current turn channel is used when available\"},"

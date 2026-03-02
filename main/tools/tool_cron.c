@@ -64,6 +64,12 @@ esp_err_t tool_cron_add_execute(const char *input_json, char *output, size_t out
         }
         job.interval_s = (uint32_t)interval->valuedouble;
         job.delete_after_run = false;
+
+        /* Optional start_at: anchor first run to a specific epoch */
+        cJSON *start_at = cJSON_GetObjectItem(root, "start_at");
+        if (start_at && cJSON_IsNumber(start_at)) {
+            job.at_epoch = (int64_t)start_at->valuedouble;
+        }
     } else if (strcmp(schedule_type, "at") == 0) {
         job.kind = CRON_KIND_AT;
         cJSON *at_epoch = cJSON_GetObjectItem(root, "at_epoch");
