@@ -40,13 +40,14 @@ FemtoClaw runs a full AI agent on bare-metal ESP32 hardware. It connects to WiFi
 - **Dual-target** — runs on both $4 ESP-WROOM-32 (no PSRAM) and $10 ESP32-S3 (8MB PSRAM)
 - **Zero-config web search** — DuckDuckGo fallback when no Brave API key is set
 - **SNTP time sync** — automatic time from NTP servers, configurable timezone
-- **Agent loop** — ReAct pattern with tool calling (web search, file ops, cron, messaging, time)
+- **Agent loop** — ReAct pattern with tool calling (web search, file ops, cron, messaging, time, GPIO)
 - **Persistent memory** — SOUL.md personality, MEMORY.md long-term memory, daily notes
 - **Telegram + WebSocket** — message it from anywhere
 - **Cron scheduler** — the AI schedules its own recurring tasks
 - **Heartbeat** — periodically checks a task file and acts autonomously
 - **Multi-provider** — Anthropic (Claude) and OpenAI (GPT), switchable at runtime
 - **OTA updates** — flash new firmware over WiFi
+- **GPIO control** — drive LEDs, relays, and buzzers via chat with safe pin allowlists, blink, and chase animations
 - **HTTP proxy** — CONNECT tunnel for restricted networks
 
 ## Architecture
@@ -219,7 +220,30 @@ FemtoClaw supports tool calling for both Anthropic and OpenAI (ReAct pattern):
 | `cron_list` | List scheduled cron jobs |
 | `cron_remove` | Remove a cron job by ID |
 | `send_message` | Send a message immediately to Telegram or WebSocket |
-| `gpio_control` | Set or read GPIO pins (LEDs, relays, buzzers) — safe pin allowlist enforced |
+| `gpio_control` | Set/read GPIO pins, blink, or run chase sequences on LEDs/relays/buzzers — safe pin allowlist enforced |
+
+### GPIO Control
+
+FemtoClaw can control hardware GPIO pins directly from Telegram. Connect LEDs, relays, or buzzers to safe pins and control them through chat.
+
+**Wiring:** Connect an LED's long leg (+) to a GPIO pin (e.g. GPIO 1 on S3, GPIO 25 on ESP32), add a 220Ω resistor between the short leg (-) and GND.
+
+**Example chat commands:**
+
+| You say | What happens |
+|---------|-------------|
+| "Turn on the LED on pin 1" | Sets GPIO 1 HIGH |
+| "Turn it off" | Sets GPIO 1 LOW |
+| "Blink pin 1 every 500ms" | Starts blinking with a hardware timer |
+| "Run a chase on pins 1,2,3,4,5" | One LED lights at a time, moving across pins |
+| "Blink pin 1 at 500ms and pin 2 at 1 second" | Both blink independently (up to 8 concurrent animations) |
+| "Stop all animations" | Stops everything, all pins LOW |
+
+**Safe pins (compile-time allowlist):**
+- **ESP32-WROOM-32:** 2, 4, 5, 12–15, 18–19, 22–23, 25–27, 32–33
+- **ESP32-S3:** 1–18, 21, 38–42, 48
+
+Boot, flash, UART, and PSRAM pins are excluded to prevent bricking.
 
 ## Skills
 

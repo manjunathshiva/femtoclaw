@@ -130,7 +130,9 @@ main/
 │   ├── tool_registry.h     Tool definition struct, register/dispatch API
 │   ├── tool_registry.c     Tool registration, JSON schema builder, dispatch by name
 │   ├── tool_web_search.h   Web search tool API
-│   └── tool_web_search.c   Brave Search API or DuckDuckGo fallback (direct + proxy)
+│   ├── tool_web_search.c   Brave Search API or DuckDuckGo fallback (direct + proxy)
+│   ├── tool_gpio.h         GPIO control tool API
+│   └── tool_gpio.c         GPIO set/read/blink/sequence with safe pin allowlists
 │
 ├── memory/
 │   ├── memory_store.h      Long-term + daily memory API
