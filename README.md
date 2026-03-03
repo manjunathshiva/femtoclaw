@@ -218,6 +218,7 @@ FemtoClaw supports tool calling for both Anthropic and OpenAI (ReAct pattern):
 | `cron_list` | List scheduled cron jobs |
 | `cron_remove` | Remove a cron job by ID |
 | `send_message` | Send a message immediately to Telegram or WebSocket |
+| `gpio_control` | Set or read GPIO pins (LEDs, relays, buzzers) — safe pin allowlist enforced |
 
 ## Skills
 
@@ -246,6 +247,7 @@ Create your own by writing markdown files to `/spiffs/skills/`.
 |---------|--------|-------------|----------|--------|
 | System info tool | Both | Return heap, uptime, WiFi RSSI, chip temp for self-monitoring | High | Planned |
 | Send message tool | Both | Let the agent proactively send messages to Telegram from cron/heartbeat | High | **Done** |
+| GPIO control tool | Both | Set/read GPIO pins to drive LEDs, relays, buzzers with safe pin allowlist | High | **Done** |
 | Telegram allowlist | Both | Restrict bot access to configured chat_ids only | High | Planned |
 | HTTP fetch tool | S3 only | Fetch URL content, strip HTML, return text to LLM (needs PSRAM for usable buffer sizes) | High | Planned |
 

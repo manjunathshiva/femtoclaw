@@ -4,6 +4,7 @@
 #include "tools/tool_files.h"
 #include "tools/tool_cron.h"
 #include "tools/tool_send_message.h"
+#include "tools/tool_gpio.h"
 
 #include <string.h>
 #include "esp_log.h"
@@ -192,6 +193,22 @@ esp_err_t tool_registry_init(void)
         .execute = tool_send_message_execute,
     };
     register_tool(&sm);
+
+    /* Register gpio_control */
+    femto_tool_t gc = {
+        .name = "gpio_control",
+        .description = "Control a GPIO pin on the ESP32. Set a pin HIGH/LOW to drive LEDs, relays, or buzzers, or read a pin's current level. Only safe pins are allowed.",
+        .input_schema_json =
+            "{\"type\":\"object\","
+            "\"properties\":{"
+            "\"pin\":{\"type\":\"integer\",\"description\":\"GPIO pin number\"},"
+            "\"action\":{\"type\":\"string\",\"description\":\"'set' to drive output or 'read' to read level\"},"
+            "\"level\":{\"type\":\"integer\",\"description\":\"0 for LOW or 1 for HIGH (required for action 'set')\"}"
+            "},"
+            "\"required\":[\"pin\",\"action\"]}",
+        .execute = tool_gpio_control_execute,
+    };
+    register_tool(&gc);
 
     build_tools_json();
 

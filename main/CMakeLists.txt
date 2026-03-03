@@ -25,6 +25,7 @@ idf_component_register(
         "tools/tool_get_time.c"
         "tools/tool_files.c"
         "tools/tool_send_message.c"
+        "tools/tool_gpio.c"
         "skills/skill_loader.c"
     INCLUDE_DIRS
         "."
