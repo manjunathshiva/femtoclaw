@@ -34,6 +34,7 @@ FemtoClaw runs a full AI agent on bare-metal ESP32 hardware. It connects to WiFi
 | **PSRAM required** | No | Yes | N/A | N/A |
 | **Zero-config search** | DDG fallback | API key only | API key | Default |
 | **GPIO control** | **Yes** | No | No | No |
+| **Remote config** | **Planned** | No | No | No |
 
 ## Key Features
 
@@ -280,6 +281,7 @@ Create your own by writing markdown files to `/spiffs/skills/`.
 
 | Feature | Target | Description | Priority | Status |
 |---------|--------|-------------|----------|--------|
+| Remote config via Telegram | Both | Switch model/provider, show config, heap info, WiFi status, and reboot from Telegram chat | High | Planned |
 | API key rotation | Both | Store multiple API keys, auto-retry on 429 rate limit | Medium | Planned |
 | Model failover | Both | Primary model → fallback chain on errors | Medium | Planned |
 | Session compaction | S3 only | Summarize older messages when history exceeds limit (needs 16KB+ context buffer) | High | Planned |
