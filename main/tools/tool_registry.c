@@ -197,15 +197,20 @@ esp_err_t tool_registry_init(void)
     /* Register gpio_control */
     femto_tool_t gc = {
         .name = "gpio_control",
-        .description = "Control a GPIO pin on the ESP32. Set a pin HIGH/LOW to drive LEDs, relays, or buzzers, or read a pin's current level. Only safe pins are allowed.",
+        .description = "Control GPIO pins. Actions: 'set' (pin HIGH/LOW), 'read' (read level), "
+            "'blink' (blink a single pin), 'sequence' (chase pattern across multiple pins, one lit at a time), "
+            "'stop' (stop any running blink/sequence). Only safe pins are allowed.",
         .input_schema_json =
             "{\"type\":\"object\","
             "\"properties\":{"
-            "\"pin\":{\"type\":\"integer\",\"description\":\"GPIO pin number\"},"
-            "\"action\":{\"type\":\"string\",\"description\":\"'set' to drive output or 'read' to read level\"},"
-            "\"level\":{\"type\":\"integer\",\"description\":\"0 for LOW or 1 for HIGH (required for action 'set')\"}"
+            "\"action\":{\"type\":\"string\",\"description\":\"'set','read','blink','sequence', or 'stop'\"},"
+            "\"pin\":{\"type\":\"integer\",\"description\":\"GPIO pin number (for set/read/blink)\"},"
+            "\"pins\":{\"type\":\"array\",\"items\":{\"type\":\"integer\"},\"description\":\"Array of GPIO pins (for sequence)\"},"
+            "\"level\":{\"type\":\"integer\",\"description\":\"0 or 1 (required for set)\"},"
+            "\"interval_ms\":{\"type\":\"integer\",\"description\":\"Interval in ms for blink/sequence (default 500 blink, 200 sequence)\"},"
+            "\"count\":{\"type\":\"integer\",\"description\":\"Number of cycles (0=infinite, default 0)\"}"
             "},"
-            "\"required\":[\"pin\",\"action\"]}",
+            "\"required\":[\"action\"]}",
         .execute = tool_gpio_control_execute,
     };
     register_tool(&gc);
