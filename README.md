@@ -33,6 +33,7 @@ FemtoClaw runs a full AI agent on bare-metal ESP32 hardware. It connects to WiFi
 | **Language** | C | C | Python | Node.js |
 | **PSRAM required** | No | Yes | N/A | N/A |
 | **Zero-config search** | DDG fallback | API key only | API key | Default |
+| **GPIO control** | **Yes** | No | No | No |
 
 ## Key Features
 
