@@ -15,6 +15,10 @@ FemtoClaw runs a full AI agent on bare-metal ESP32 hardware. It connects to WiFi
 
 ## See it in Action
 
+https://github.com/user-attachments/assets/b3c4be37-e646-4173-b958-8d3f4839e471
+
+> **GPIO control via natural language** — no Arduino IDE, no recompiling, no reflashing. Just tell it what to do.
+
 <p align="center">
   <img src="assets/img3.png" alt="FemtoClaw scheduling classes and reminders" width="300" />
   &nbsp;&nbsp;
