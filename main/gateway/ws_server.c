@@ -1,6 +1,7 @@
 #include "ws_server.h"
 #include "femto_config.h"
 #include "bus/message_bus.h"
+#include "ota/ota_manager.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -140,6 +141,33 @@ static esp_err_t ws_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+/* --- OTA HTTP handler: GET /ota?url=http://... --- */
+static esp_err_t ota_handler(httpd_req_t *req)
+{
+    char query[256] = {0};
+    char url[200] = {0};
+
+    if (httpd_req_get_url_query_str(req, query, sizeof(query)) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing query string");
+        return ESP_FAIL;
+    }
+    if (httpd_query_key_value(query, "url", url, sizeof(url)) != ESP_OK || url[0] == '\0') {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing 'url' parameter");
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG, "OTA requested via HTTP: %s", url);
+    httpd_resp_sendstr(req, "OTA starting, device will reboot...\n");
+
+    /* Small delay so the HTTP response is sent before reboot */
+    vTaskDelay(pdMS_TO_TICKS(500));
+
+    esp_err_t ret = ota_update_from_url(url);
+    /* Only reached on failure */
+    ESP_LOGE(TAG, "OTA failed: %s", esp_err_to_name(ret));
+    return ESP_FAIL;
+}
+
 esp_err_t ws_server_start(void)
 {
     memset(s_clients, 0, sizeof(s_clients));
@@ -163,6 +191,14 @@ esp_err_t ws_server_start(void)
         .is_websocket = true,
     };
     httpd_register_uri_handler(s_server, &ws_uri);
+
+    /* OTA endpoint: GET /ota?url=... */
+    httpd_uri_t ota_uri = {
+        .uri = "/ota",
+        .method = HTTP_GET,
+        .handler = ota_handler,
+    };
+    httpd_register_uri_handler(s_server, &ota_uri);
 
     ESP_LOGI(TAG, "WebSocket server started on port %d", FEMTO_WS_PORT);
     return ESP_OK;

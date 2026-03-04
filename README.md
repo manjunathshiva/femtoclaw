@@ -34,6 +34,7 @@ FemtoClaw runs a full AI agent on bare-metal ESP32 hardware. It connects to WiFi
 | **PSRAM required** | No | Yes | N/A | N/A |
 | **Zero-config search** | DDG fallback | API key only | API key | Default |
 | **GPIO control** | **Yes** | No | No | No |
+| **WiFi OTA flash** | **Yes** | No | N/A | N/A |
 | **Remote config** | **Planned** | No | No | No |
 
 ## Key Features
@@ -47,7 +48,7 @@ FemtoClaw runs a full AI agent on bare-metal ESP32 hardware. It connects to WiFi
 - **Cron scheduler** — the AI schedules its own recurring tasks
 - **Heartbeat** — periodically checks a task file and acts autonomously
 - **Multi-provider** — Anthropic (Claude) and OpenAI (GPT), switchable at runtime
-- **OTA updates** — flash new firmware over WiFi
+- **WiFi OTA flash** — update firmware over WiFi from your Mac/PC, no USB cable needed after initial setup
 - **GPIO control** — drive LEDs, relays, and buzzers via chat with safe pin allowlists, blink, and chase animations
 - **HTTP proxy** — CONNECT tunnel for restricted networks
 
@@ -191,6 +192,29 @@ femto> cron_start               # start cron scheduler
 femto> restart                  # reboot
 ```
 
+### OTA (Over-The-Air) Updates
+
+After the initial USB flash, update firmware entirely over WiFi:
+
+**From your Mac/PC:**
+
+```bash
+# Build and serve firmware
+./scripts/ota_serve.sh
+# → builds firmware, starts HTTP server on port 8080
+# → prints the curl command to trigger OTA
+```
+
+**Then from another terminal:**
+
+```bash
+curl "http://DEVICE_IP:18789/ota?url=http://YOUR_MAC_IP:8080/femtoclaw.bin"
+```
+
+The device downloads the new firmware, flashes it to the alternate OTA partition, and reboots automatically. No USB cable, no buttons, no serial monitor needed.
+
+> **Note:** The device must be connected to the same WiFi network as your Mac/PC.
+
 ## Memory
 
 FemtoClaw stores everything as plain text files on SPIFFS flash:
@@ -259,7 +283,7 @@ Create your own by writing markdown files to `/spiffs/skills/`.
 ## Also Included
 
 - **WebSocket gateway** on port 18789
-- **OTA updates** over WiFi
+- **WiFi OTA flash** — cable-free firmware updates via HTTP
 - **Dual-core processing** (ESP32-S3)
 - **HTTP proxy** support
 - **Cron scheduler** with persistent jobs
@@ -274,6 +298,7 @@ Create your own by writing markdown files to `/spiffs/skills/`.
 | System info tool | Both | Return heap, uptime, WiFi RSSI, chip temp for self-monitoring | High | Planned |
 | Send message tool | Both | Let the agent proactively send messages to Telegram from cron/heartbeat | High | **Done** |
 | GPIO control tool | Both | Set/read GPIO pins to drive LEDs, relays, buzzers with safe pin allowlist | High | **Done** |
+| WiFi OTA flash | Both | Update firmware over WiFi — no USB cable needed after initial setup | High | **Done** |
 | Telegram allowlist | Both | Restrict bot access to configured chat_ids only | High | Planned |
 | HTTP fetch tool | S3 only | Fetch URL content, strip HTML, return text to LLM (needs PSRAM for usable buffer sizes) | High | Planned |
 

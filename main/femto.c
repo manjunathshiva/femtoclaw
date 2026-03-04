@@ -26,8 +26,28 @@
 #include "buttons/button_driver.h"
 #include "imu/imu_manager.h"
 #include "skills/skill_loader.h"
+#include "esp_sntp.h"
 
 static const char *TAG = "femto";
+
+/* Wait for SNTP to sync the system clock (up to timeout_ms) */
+static bool wait_for_time_sync(uint32_t timeout_ms)
+{
+    uint32_t elapsed = 0;
+    const uint32_t step = 500;
+
+    while (elapsed < timeout_ms) {
+        time_t now = time(NULL);
+        if (now > 1700000000) {  /* after ~Nov 2023 = clock is set */
+            ESP_LOGI(TAG, "Time synced in %lu ms", (unsigned long)elapsed);
+            return true;
+        }
+        vTaskDelay(pdMS_TO_TICKS(step));
+        elapsed += step;
+    }
+    ESP_LOGW(TAG, "SNTP sync timeout after %lu ms", (unsigned long)timeout_ms);
+    return false;
+}
 
 static esp_err_t init_nvs(void)
 {
@@ -155,6 +175,9 @@ void app_main(void)
                 FEMTO_OUTBOUND_STACK, NULL,
                 FEMTO_OUTBOUND_PRIO, NULL, FEMTO_OUTBOUND_CORE) == pdPASS)
                 ? ESP_OK : ESP_FAIL);
+
+            /* Wait for SNTP before starting time-dependent services */
+            wait_for_time_sync(15000);
 
             /* Start network-dependent services */
             ESP_ERROR_CHECK(agent_loop_start());

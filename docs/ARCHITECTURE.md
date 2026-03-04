@@ -154,7 +154,7 @@ main/
 │
 └── ota/
     ├── ota_manager.h       OTA update API
-    └── ota_manager.c       esp_https_ota wrapper
+    └── ota_manager.c       HTTP/HTTPS OTA via esp_https_ota (+ HTTP endpoint on WS server)
 ```
 
 ---

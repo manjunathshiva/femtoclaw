@@ -27,6 +27,7 @@ idf_component_register(
         "tools/tool_send_message.c"
         "tools/tool_gpio.c"
         "skills/skill_loader.c"
+        "ota/ota_manager.c"
     INCLUDE_DIRS
         "."
     REQUIRES
